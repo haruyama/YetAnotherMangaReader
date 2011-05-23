@@ -8,10 +8,10 @@ class PDFDocument
     if blank_page_filename
     end
     @document = Poppler::Document.new(pdf_filename)
-    @total_page = @document.size
+    total_page = @document.size
     @page = -1
     @page_map = []
-    (0..@total_page).each { |i|
+    (0..total_page).each { |i|
       @page_map[i] = i
     }
 
@@ -23,8 +23,8 @@ class PDFDocument
 
   def render_page(context, page)
     begin
-      if page > -1 && page < @total_page && @page_map[page]
-        context.render_poppler_page(@document[page])
+      if page > -1 && page < @page_map.size && @page_map[page]
+        context.render_poppler_page(@document[@page_map[page]])
       end
     rescue
     end
@@ -55,10 +55,24 @@ class PDFDocument
     end
   end
 
-  def turn_pages
+  def forward_pages
     @page += 2
   end
 
+  def back_pages
+    @page -= 2
+  end
+
+
+  def insert_blank_page_to_left
+    p @page_map
+    @page_map.insert(@page + 1 , nil)
+    p @page_map
+  end
+
+  def insert_blank_page_to_right
+    @page_map.insert(@page , nil)
+  end
 end
 
 
@@ -94,9 +108,20 @@ drawing_area.signal_connect('expose-event') do |widget, event|
 end
 
 window.signal_connect('key-press-event') do |widget, event|
-  if event.keyval == 32 # space
-    document.turn_pages
-    drawing_area.signal_emit('expose-event', event)
+  p event.keyval
+  case(event.keyval)
+    when 32 #space
+      document.forward_pages
+      drawing_area.signal_emit('expose-event', event)
+    when 65288 # backspace
+      document.back_pages
+      drawing_area.signal_emit('expose-event', event)
+    when 108 # l
+      document.insert_blank_page_to_left
+      drawing_area.signal_emit('expose-event', event)
+    when 114 # r
+      document.insert_blank_page_to_right
+      drawing_area.signal_emit('expose-event', event)
   end
   true
 end
