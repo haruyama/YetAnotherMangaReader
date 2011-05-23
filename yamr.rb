@@ -8,25 +8,50 @@ class PDFDocument
     if blank_page_filename
     end
     @document = Poppler::Document.new(pdf_filename)
+    @total_page = @document.size
     @page = -1
+    @page_map = []
+    (0..@total_page).each { |i|
+      @page_map[i] = i
+    }
+
   end
 
-  def size
-    #@document[@page].size
-    @document[0].size
+  def page_size(page=0)
+    @document[page].size
   end
 
-  def draw(context, w, h)
+  def render_page(context, page)
+    begin
+      if page > -1 && page < @total_page && @page_map[page]
+        context.render_poppler_page(@document[page])
+      end
+    rescue
+    end
+  end
+
+
+
+  def draw(context, context_width, context_height)
     context.save do
-      image_width, image_height = self.size
-      context.scale(w / 2 / image_width.to_f, h / image_height.to_f)
-      if @page > -2
-        context.render_poppler_page(@document[@page+1])
+      page_width, page_height = self.page_size(@page + 1).map { |e| e.to_f}
+
+      context_width = context_width.to_f
+      context_height = context_height.to_f
+
+      if (context_width / context_height) >= (page_width * 2 / page_height)
+        scale_rate = context_height / page_height
+        context.scale(scale_rate, scale_rate)
+        context.translate((context_width - scale_rate* 2 * page_width) / scale_rate / 2, 0)
+      else
+        scale_rate = context_width / page_width / 2
+        context.scale(scale_rate, scale_rate)
+        context.translate(0, (context_height- scale_rate* page_height) / scale_rate / 2)
       end
-      context.translate(image_width, 0)
-      if @page > -1
-        context.render_poppler_page(@document[@page])
-      end
+
+      render_page(context, @page + 1)
+      context.translate(page_width, 0)
+      render_page(context, @page)
     end
   end
 
@@ -46,8 +71,8 @@ document = PDFDocument.new(ARGV[0])
 
 window = Gtk::Window.new
 
-image_width, image_height = document.size
-window.set_default_size(image_width*2, image_height)
+page_width, page_height = document.page_size
+window.set_default_size(page_width*2, page_height)
 window.signal_connect("destroy") do
   Gtk.main_quit
   false
@@ -58,16 +83,21 @@ drawing_area.signal_connect('expose-event') do |widget, event|
   context = widget.window.create_cairo_context
   context.fill
   x, y, w, h = widget.allocation.to_a
-  context.set_source_rgb(1, 1, 1) # white
+
+  #背景の塗り潰し
+  context.set_source_rgb(1, 1, 1)
   context.rectangle(0, 0, w, h)
   context.fill
+
   document.draw(context, w, h)
   true
 end
 
 window.signal_connect('key-press-event') do |widget, event|
-  document.turn_pages
-  drawing_area.signal_emit('expose-event', event)
+  if event.keyval == 32 # space
+    document.turn_pages
+    drawing_area.signal_emit('expose-event', event)
+  end
   true
 end
 
