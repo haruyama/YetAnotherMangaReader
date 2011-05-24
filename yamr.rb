@@ -65,9 +65,7 @@ class PDFDocument
 
 
   def insert_blank_page_to_left
-    p @page_map
     @page_map.insert(@page + 1 , nil)
-    p @page_map
   end
 
   def insert_blank_page_to_right
