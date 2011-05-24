@@ -9,27 +9,49 @@ class PDFDocument
     end
     @document = Poppler::Document.new(pdf_filename)
     total_page = @document.size
-    @page = -1
+    @virtual_page = -1
     @page_map = []
-    (0..total_page).each { |i|
+    (0..total_page-1).each { |i|
       @page_map[i] = i
     }
 
   end
 
-  def page_size(page=0)
-    @document[page].size
+  def actual_page(virtual_page)
+      if virtual_page > -1 && virtual_page < @page_map.size && @page_map[virtual_page]
+        return @page_map[virtual_page]
+      end
+      return nil
   end
 
-  def render_page(context, page)
-    if page > -1 && page < @page_map.size && @page_map[page]
-      context.render_poppler_page(@document[@page_map[page]])
+  def page_size(virtual_page=0)
+    actual_page = actual_page(virtual_page)
+    if actual_page
+      return @document[actual_page].size
+    end
+    return nil
+  end
+
+  def render_page(context, virtual_page)
+    begin
+      actual_page = actual_page(virtual_page)
+      if actual_page
+        context.render_poppler_page(@document[actual_page])
+      end
+    rescue
     end
   end
 
   def draw(context, context_width, context_height)
     context.save do
-      page_width, page_height = self.page_size(@page + 1).map { |e| e.to_f}
+      page_size = self.page_size(@virtual_page + 1)
+      if !page_size
+        page_size = self.page_size(@virtual_page)
+      end
+      if !page_size
+        return
+      end
+      page_width, page_height = page_size.map { |e| e.to_f}
 
       context_width = context_width.to_f
       context_height = context_height.to_f
@@ -44,26 +66,36 @@ class PDFDocument
         context.translate(0, (context_height- scale_rate* page_height) / scale_rate / 2)
       end
 
-      render_page(context, @page + 1)
+      render_page(context, @virtual_page + 1)
       context.translate(page_width, 0)
-      render_page(context, @page)
+      render_page(context, @virtual_page)
     end
   end
 
   def forward_pages
-    @page += 2
+    if @virtual_page < (@page_map.size - 2)
+      @virtual_page += 2
+    end
   end
 
   def back_pages
-    @page -= 2
+    if @virtual_page > 0
+      @virtual_page -= 2
+    end
   end
 
   def insert_blank_page_to_left
-    @page_map.insert(@page + 1 , nil)
+    begin
+      @page_map.insert(@virtual_page + 1 , nil)
+    rescue
+    end
   end
 
   def insert_blank_page_to_right
-    @page_map.insert(@page , nil)
+    begin
+      @page_map.insert(@virtual_page, nil)
+    rescue
+    end
   end
 end
 
