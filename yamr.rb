@@ -22,15 +22,10 @@ class PDFDocument
   end
 
   def render_page(context, page)
-    begin
-      if page > -1 && page < @page_map.size && @page_map[page]
-        context.render_poppler_page(@document[@page_map[page]])
-      end
-    rescue
+    if page > -1 && page < @page_map.size && @page_map[page]
+      context.render_poppler_page(@document[@page_map[page]])
     end
   end
-
-
 
   def draw(context, context_width, context_height)
     context.save do
@@ -63,7 +58,6 @@ class PDFDocument
     @page -= 2
   end
 
-
   def insert_blank_page_to_left
     @page_map.insert(@page + 1 , nil)
   end
@@ -73,7 +67,6 @@ class PDFDocument
   end
 end
 
-
 if ARGV.size < 1
   puts "Usage: #{$0} file"
   exit 1
@@ -82,13 +75,6 @@ end
 document = PDFDocument.new(ARGV[0])
 
 window = Gtk::Window.new
-
-page_width, page_height = document.page_size
-window.set_default_size(page_width*2, page_height)
-window.signal_connect("destroy") do
-  Gtk.main_quit
-  false
-end
 
 drawing_area = Gtk::DrawingArea.new
 drawing_area.signal_connect('expose-event') do |widget, event|
@@ -108,21 +94,25 @@ window.signal_connect('key-press-event') do |widget, event|
   case(event.keyval)
     when 32 #space
       document.forward_pages
-      drawing_area.signal_emit('expose-event', event)
-    when 65288 # backspace
+    when 65288,98 # backspace, b
       document.back_pages
-      drawing_area.signal_emit('expose-event', event)
     when 108 # l
       document.insert_blank_page_to_left
-      drawing_area.signal_emit('expose-event', event)
     when 114 # r
       document.insert_blank_page_to_right
-      drawing_area.signal_emit('expose-event', event)
   end
+  drawing_area.signal_emit('expose-event', event)
   true
 end
 
 window.add(drawing_area)
-window.show_all
 
+page_width, page_height = document.page_size
+window.set_default_size(page_width*2, page_height)
+window.signal_connect("destroy") do
+  Gtk.main_quit
+  false
+end
+
+window.show_all
 Gtk.main
