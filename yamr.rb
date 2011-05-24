@@ -93,7 +93,6 @@ end
 drawing_area = Gtk::DrawingArea.new
 drawing_area.signal_connect('expose-event') do |widget, event|
   context = widget.window.create_cairo_context
-  context.fill
   x, y, w, h = widget.allocation.to_a
 
   #背景の塗り潰し
@@ -106,7 +105,6 @@ drawing_area.signal_connect('expose-event') do |widget, event|
 end
 
 window.signal_connect('key-press-event') do |widget, event|
-  p event.keyval
   case(event.keyval)
     when 32 #space
       document.forward_pages
