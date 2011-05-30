@@ -3,7 +3,7 @@ PDFを漫画のページ順に見開き表示するリーダー
 ウィンドウサイズに合わせて適当に拡大縮小する
 
 - ruby 1.9 のみ対応(1.8ではテストしてない)
-- gtk2, poppler に依存
+- glib2, pango, gtk2, atk, cairo, gdk_pixbuf2, poppler に依存
 
 - key binding
 -- space: 2ページ進む
