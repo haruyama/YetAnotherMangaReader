@@ -38,23 +38,26 @@ class PDFDocument
       if actual_page
         context.render_poppler_page(@document[actual_page])
       end
-    rescue
+    rescue => e
+      p e
     end
   end
 
   def draw(context, context_width, context_height)
-    context.save do
-      page_size = self.page_size(@virtual_page + 1)
-      if !page_size
-        page_size = self.page_size(@virtual_page)
-      end
-      if !page_size
-        return
-      end
-      page_width, page_height = page_size.map { |e| e.to_f}
 
-      context_width = context_width.to_f
-      context_height = context_height.to_f
+    page_size = self.page_size(@virtual_page + 1)
+    if !page_size
+      page_size = self.page_size(@virtual_page)
+    end
+    if !page_size
+      return
+    end
+    page_width, page_height = page_size.map { |e| e.to_f}
+
+    context_width = context_width.to_f
+    context_height = context_height.to_f
+
+    context.save do
 
       if (context_width / context_height) >= (page_width * 2 / page_height)
         scale_rate = context_height / page_height
@@ -85,17 +88,11 @@ class PDFDocument
   end
 
   def insert_blank_page_to_left
-    begin
-      @page_map.insert(@virtual_page + 1 , nil)
-    rescue
-    end
+    @page_map.insert(@virtual_page + 1 , nil)
   end
 
   def insert_blank_page_to_right
-    begin
-      @page_map.insert(@virtual_page, nil)
-    rescue
-    end
+    @page_map.insert(@virtual_page, nil)
   end
 end
 
